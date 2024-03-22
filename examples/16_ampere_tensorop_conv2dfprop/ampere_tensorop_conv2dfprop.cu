@@ -231,15 +231,15 @@ to check correctness.
 
 // Data types for input and output tensors
 // and computation between elements
-using ElementAccumulator = float;                  // Data type of accumulator
-using ElementComputeEpilogue = float;              // Data type of epilogue computation (alpha, beta)
-using ElementInputA = cutlass::half_t;             // Data type of elements in input tensor
-using ElementInputB = cutlass::half_t;             // Data type of elements in input tensor
-using ElementOutput = float;                       // Data type of elements in output tensor
+using ElementAccumulator = int32_t;                  // Data type of accumulator
+using ElementComputeEpilogue = int32_t;              // Data type of epilogue computation (alpha, beta)
+using ElementInputA = int8_t;             // Data type of elements in input tensor
+using ElementInputB = int8_t;             // Data type of elements in input tensor
+using ElementOutput = int32_t;                       // Data type of elements in output tensor
 
-using LayoutInputA = cutlass::layout::TensorNHWC;
-using LayoutInputB = cutlass::layout::TensorNHWC;
-using LayoutOutput = cutlass::layout::TensorNHWC;
+using LayoutInputA = cutlass::layout::TensorNCxHWx<32>;
+using LayoutInputB = cutlass::layout::TensorNCxHWx<32>;
+using LayoutOutput = cutlass::layout::TensorNCxHWx<32>;
 
 // Whether to use tensor cores or regular SIMT cores on GPU SM
 using MMAOp = cutlass::arch::OpClassTensorOp;
@@ -257,7 +257,7 @@ using WarpShape = cutlass::gemm::GemmShape<64, 64, 64>;
 using InstructionShape = cutlass::gemm::GemmShape<16, 8, 16>;
 
 // How the kernel schedules threadblocks
-using SwizzleThreadBlock = cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>;
+using SwizzleThreadBlock = cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<2>;
 
 // Number of pipeline stages to use
 constexpr int NumStages = 3;
@@ -268,7 +268,7 @@ static cutlass::conv::IteratorAlgorithm const IteratorAlgorithm = cutlass::conv:
 // The epilogue part of the kernel
 using EpilogueOp = cutlass::epilogue::thread::LinearCombination<
     ElementOutput,                                     // Data type of output matrix.
-    128 / cutlass::sizeof_bits<ElementOutput>::value,  // The number of elements per vectorized
+    64 / cutlass::sizeof_bits<ElementOutput>::value,  // The number of elements per vectorized
                                                        // memory access. This becomes the vector width of
                                                        // math instructions in the epilogue too.
     ElementAccumulator,                                // Data type of accumulator
@@ -317,8 +317,8 @@ struct Options {
 
   Options():
     help(false),
-    input_size(1, 32, 32, 32),
-    filter_size(32, 3, 3, 32),
+    input_size(2, 256, 256, 32),
+    filter_size(128, 3, 3, 32),
     padding(1, 1, 1, 1),
     conv_stride(1, 1),
     dilation(1, 1),
